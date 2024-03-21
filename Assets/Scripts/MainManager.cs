@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
 
 public class MainManager : MonoBehaviour
 {
@@ -11,12 +12,15 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
+    public Text BestScoreTextField;
     public GameObject GameOverText;
     
     private bool m_Started = false;
     private int m_Points;
-    
+    private static int m_highScore = 0;
+
     private bool m_GameOver = false;
+    
 
     
     // Start is called before the first frame update
@@ -36,6 +40,8 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+        m_highScore = ReadHighScoreFromFile();
+        UpdateBestScoreText();
     }
 
     private void Update()
@@ -66,11 +72,61 @@ public class MainManager : MonoBehaviour
     {
         m_Points += point;
         ScoreText.text = $"Score : {m_Points}";
+
+        if(m_Points > m_highScore)
+        {
+            m_highScore = m_Points;
+        }
+
+        UpdateBestScoreText();
+    }
+
+    void UpdateBestScoreText()
+    {
+        BestScoreTextField.text = $"Best Score: {m_highScore} Name: {StartMenuManager.Shared.PlayerName}";
     }
 
     public void GameOver()
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+        SaveHighScoreData();
     }
+
+    private int GetHighScore()
+    {
+        return m_highScore;
+    }
+
+    void SaveHighScoreData()
+    {
+        HighScoreData data = new HighScoreData();
+        data.HighScore = m_highScore;
+
+        string json = JsonUtility.ToJson(data);
+        string path = Application.persistentDataPath + "/highscore.json";
+        File.WriteAllText(path, json);
+    }
+
+    int ReadHighScoreFromFile()
+    {
+        string path = Application.persistentDataPath + "/highscore.json";
+        string json = File.ReadAllText(path);
+
+        HighScoreData data = JsonUtility.FromJson<HighScoreData>(json);
+        if(data != null)
+        {
+            return data.HighScore;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+}
+
+[System.Serializable]
+class HighScoreData
+{
+    public int HighScore = 0;
 }
